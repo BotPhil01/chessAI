@@ -4,7 +4,7 @@ import BoardEvaluation
 
 depth = 10
 board = chess.Board()
-
+move_val = -9999
 def set_board(_board):
     global board
     board = _board
@@ -14,7 +14,8 @@ def set_depth(_depth):
     depth = _depth
 
 
-def next_move():
+def next_move(_board):
+    set_board(_board)
     try:
         move = chess.polyglot.MemoryMappedReader(
             "resources/computer.bin").weighted_choice(
@@ -25,9 +26,10 @@ def next_move():
         best_val = -99999
         alpha = -100000
         beta = 100000
+        qlim = 64
         for move in board.legal_moves:
             board.push(move)
-            move_value = -alphabeta(-beta, -alpha, depth - 1)
+            move_value = -alphabeta(-beta, -alpha, depth - 1, qlim)
             if move_value > best_val:
                 best_move = move
                 best_val = move_value
@@ -40,15 +42,16 @@ def next_move():
 # alpha beta function for move generation
 # alpha = lower bound
 # beta = upper bound
-def alphabeta(alpha, beta, _depth):
+def alphabeta(alpha, beta, _depth, qlim):
     best_val = -9999
     # if there are no more moves to play do quiescence search
     if (_depth == 0):
-        return quiesce(alpha, beta)
+        return quiesce(alpha, beta, qlim)
     # else keep playing moves and evaluating
     for move in board.legal_moves:
         board.push(move)  # play move
-        move_val = -alphabeta(-beta, -alpha, _depth - 1)  # do alpha beta on blacks move
+        global move_val
+        move_val = -alphabeta(-beta, -alpha, _depth - 1, qlim)  # do alpha beta on blacks move
         board.pop()  # remove move
         if move_val >= beta:
             return move_val
@@ -59,18 +62,20 @@ def alphabeta(alpha, beta, _depth):
     return best_val
 
 # search algorithm to evaluate quiet moves
-def quiesce(alpha, beta):
+def quiesce(alpha, beta, lim):
     evaluator = BoardEvaluation
     evaluator.set_board(board)
     eval = evaluator.evaluateboard()
+    global move_val
     if eval >= beta:
         return beta
     if alpha < eval:
         alpha = eval
     for move in board.legal_moves:
-        if board.is_capture(move):
+        if board.is_capture(move) and lim > 0:
             board.push(move)
-            move_val = -quiesce(-beta, -alpha)
+            lim -= 1
+            move_val = -quiesce(-beta, -alpha, lim)
             board.pop()
     if move_val >= beta:
         return beta

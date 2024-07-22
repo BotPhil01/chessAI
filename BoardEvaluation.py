@@ -16,13 +16,6 @@ def getgameresult():
         return 0
 
 
-#returns if the game has ended or not
-def gameendcheck():
-    if board.is_checkmate() or board.is_stalemate() or board.is_insufficient_material():
-        return True
-    return False
-
-
 #returns the current material advantage of the board
 def calcmatadv():
     wp = len(board.pieces(chess.PAWN, chess.WHITE))
@@ -125,9 +118,9 @@ def calcposadv():
 
 
 def evaluateboard():
-    if gameendcheck(board):
-        return getgameresult(board)
-    advantage = calcposadv(board) + calcmatadv(board)
+    if board.is_game_over():
+        return getgameresult()
+    advantage = calcposadv() + calcmatadv()
     if board.turn:
         return advantage
     return -advantage
