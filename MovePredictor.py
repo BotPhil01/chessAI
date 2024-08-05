@@ -1,50 +1,38 @@
 import chess
 from chess.polyglot import MemoryMappedReader
-from Evaluation import Evaluator
-
+from RegularBot import RegularBot
 # alpha = min assured score (board after best opponent move)
 # beta = max assured score (board after best pov player move)
 # when beta < alpha prune branch
-MAX_DEPTH = 3
-
+MAX_DEPTH = 5
+MAX_QUIESCE_DEPTH = 2
 
 def set_depth(depth):
     global MAX_DEPTH
     MAX_DEPTH = depth
 
 
-def alpha_beta(board: chess.Board, whi, dep, alp, bet): # white is maximising
+
+def alpha_beta(board, whi, dep, alp, bet, engine):
     if dep == MAX_DEPTH:
-        e = Evaluator()
-        e.set_board(board)
-        return quiesce(board, alp, bet)
-    elif whi: # maximiser
-        best = float("-inf")
-        for move in board.legal_moves:
-            board.push(move)
-            best = max(alpha_beta(board, False, dep + 1, alp, bet), best)
-            alp = max(alp, best)
-            board.pop()
-            if bet <= alp:
-                break
-        return best
-    else: # minimiser
-        best = float("inf")
-        for move in board.legal_moves:
-            board.push(move)
-            best = min(alpha_beta(board, True, dep + 1, bet, alp), best)
-            bet = min(bet, best)
-            board.pop()
-            if bet <= alp:
-                break
-        return best
+        return quiesce(board, alp, bet, engine, 0)
+    best = float("-inf")
+    for move in board.legal_moves:
+        board.push(move)
+        score = -alpha_beta(board, not whi, dep + 1, -alp, -bet, engine)
+        board.pop()
+        if score > best:
+            best = score
+            if score > alp:
+                alp = score
+        if score >= bet:
+            return best
+    return best
 
-
-def quiesce(board: chess.Board, alpha, beta): # searches the captures remaining
-    print("Quiescing")
-    e = Evaluator()
-    e.set_board(board)
-    stand_pat = e.eval_board()
+def quiesce(board: chess.Board, alpha, beta, engine: RegularBot, qdepth): # searches the captures remaining
+    stand_pat = engine.eval_board(board)
+    if qdepth == MAX_QUIESCE_DEPTH:
+        return stand_pat
     if stand_pat >= beta:
         return beta
     if stand_pat < alpha:
@@ -53,7 +41,7 @@ def quiesce(board: chess.Board, alpha, beta): # searches the captures remaining
     for move in board.legal_moves:
         if board.is_capture(move):
             board.push(move)
-            score = -quiesce(board, -beta, -alpha)
+            score = -quiesce(board, -beta, -alpha, engine, qdepth + 1)
             board.pop()
 
             if score >= beta:
@@ -63,8 +51,7 @@ def quiesce(board: chess.Board, alpha, beta): # searches the captures remaining
     return alpha
 
 
-def next_move(board):
-    print("Getting next move")
+def next_move(board, engine):
     if board.is_game_over():
         raise Exception("Game has already finished")
     else:
@@ -78,14 +65,13 @@ def next_move(board):
             for move in board.legal_moves:
                 if move != None:
                     board.push(move)
-                    tmp = -alpha_beta(board, board.turn == chess.WHITE, 0, alpha, beta)
+                    tmp = -alpha_beta(board, board.turn == chess.WHITE, 0, -alpha, -beta, engine)
                     board.pop()
                     if tmp > best_eval:
                         best_eval = tmp
                         best_move = move
                     if tmp > alpha:
                         alpha = tmp
-            print("Found move")
             if best_move == None:
                 raise Exception("No valid move")
             return best_move
