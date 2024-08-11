@@ -9,7 +9,8 @@ import time
 
 from RegularBot import RegularBot
 from PositionBot import PositionBot
-
+from FirstBot import FirstBot
+from LastBot import LastBot
 class MainWindow(QWidget):
 
     # function for running the main loop of the game
@@ -47,8 +48,8 @@ class MainWindow(QWidget):
         self.chessboardSvg = chess.svg.board(self.chessboard).encode("UTF-8")
         self.widgetSvg.load(self.chessboardSvg)
 
-        self.black = PositionBot()
-        self.white = RegularBot()
+        self.black = FirstBot()
+        self.white = LastBot()
 
         self.button = QPushButton("Start loop", self)
         self.button.setGeometry(1500, 10, 100, 100)

@@ -54,6 +54,10 @@ def quiesce(board: chess.Board, alpha, beta, engine: RegularBot, qdepth): # sear
 def next_move(board, engine):
     if board.is_game_over():
         raise Exception("Game has already finished")
+    elif str(engine) == "FirstBot":
+        return list(board.legal_moves)[0]
+    elif str(engine) == "LastBot":
+        return list(board.legal_moves)[-1]
     else:
         try:
             return MemoryMappedReader("resources/Chess-World-master/books/human.bin").weighted_choice(board).move
